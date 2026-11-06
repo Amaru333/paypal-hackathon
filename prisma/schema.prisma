@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  parent
+  child
+}
+
+enum PurchaseStatus {
+  approval
+  ready
+  processing
+  paid
+  declined
+  blocked
+}
+
+model Parent {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  children     Child[]
+  sessions     Session[]
+  connection   PayPalConnection?
+  paypalSetup  PayPalSetup?
+}
+
+model Child {
+  id           String   @id @default(uuid())
+  parentId     String
+  parent       Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  name         String
+  username     String?  @unique
+  passwordHash String?
+  joinedAt     DateTime?
+  createdAt    DateTime @default(now())
+  budget       Budget?
+  invitation   Invitation?
+  sessions     Session[]
+  purchases    Purchase[]
+  @@index([parentId, createdAt])
+}
+
+model Budget {
+  childId      String @id
+  child        Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+  allowance    Int
+  threshold    Int
+  food         Int
+  groceries    Int
+  transport    Int
+  other        Int
+  frozen       Boolean @default(false)
+  periodDays   Int @default(7)
+  periodStart  DateTime @default(now())
+}
+
+model Invitation {
+  childId   String @id
+  child     Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([expiresAt])
+}
+
+model Session {
+  tokenHash String @id
+  role      Role
+  parentId  String?
+  parent    Parent? @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  childId   String?
+  child     Child? @relation(fields: [childId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+  @@index([parentId])
+  @@index([childId])
+}
+
+model LoginAttempt {
+  id        String @id @default(uuid())
+  identity  String
+  createdAt DateTime @default(now())
+  @@index([identity, createdAt])
+}
+
+model PayPalConnection {
+  parentId String @id
+  parent   Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  token    String
+}
+
+model PayPalSetup {
+  parentId  String @id
+  parent    Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  setupId   String
+  stateHash String
+  requestId String @unique
+  createdAt DateTime @default(now())
+}
+
+model Purchase {
+  id             String @id @default(uuid())
+  childId        String
+  child          Child @relation(fields: [childId], references: [id], onDelete: Restrict)
+  key            String
+  productId      String
+  name           String
+  cents          Int
+  category       String
+  explanation    String
+  source         String
+  createdAt      DateTime @default(now())
+  attemptedAt    DateTime?
+  period         DateTime
+  status         PurchaseStatus
+  reason         String
+  orderId        String? @unique
+  captureId      String? @unique
+  error          String?
+  parentApproved Boolean @default(false)
+  leaseToken     String?
+  leaseUntil     DateTime?
+  @@unique([childId, key])
+  @@index([childId, status, period])
+}

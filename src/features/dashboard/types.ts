@@ -1,0 +1,31 @@
+import type { Category, Policy, Purchase, Role } from '@/domain/wallet';
+export type ChildSummary = {
+  id: string;
+  name: string;
+  username?: string;
+  joined: boolean;
+  invitationStatus: 'joined' | 'pending' | 'expired' | 'not-invited';
+  expiresAt?: number;
+  allowance: number;
+  frozen: boolean;
+  requests: number;
+};
+export type InviteResult = { childId: string; url: string; expiresAt: number };
+export type Snapshot = {
+  initialized: boolean;
+  childId: string | null;
+  children: ChildSummary[];
+  role: Role;
+  parentName: string;
+  childName: string;
+  policy: Policy;
+  period: string;
+  renewsAt: string;
+  purchases: Purchase[];
+  used: Record<Category, number>;
+  spent: number;
+  reserved: number;
+  connected: boolean;
+  ai: boolean;
+};
+export type Tab = 'Family' | 'Overview' | 'Requests' | 'Budgets' | 'Activity' | 'Shop';
