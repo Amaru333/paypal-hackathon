@@ -26,12 +26,63 @@ const purchase = (overrides: Partial<Purchase> = {}): Purchase => ({
 });
 test('a small purchase fits without parent approval', () =>
   assert.equal(evaluate(defaultPolicy, [], period, 1200, 'Food').status, 'ready'));
-test('large and category-over-budget purchases require approval', () => {
+test('large purchases require approval; small category shortfalls receive coverage', () => {
   assert.equal(evaluate(defaultPolicy, [], period, 4500, 'Everything else').status, 'approval');
   assert.equal(
     evaluate(defaultPolicy, [purchase({ cents: 2800 })], period, 500, 'Food').status,
+    'ready',
+  );
+});
+
+test('Soft Decline allocates only the shortfall and reserves donors for later purchases', () => {
+  const history = [purchase({ cents: 2800 })];
+  const result = evaluate(defaultPolicy, history, period, 500, 'Food');
+  assert.equal(result.status, 'ready');
+  assert.deepEqual(result.allocations, { Food: 200, 'Everything else': 300 });
+  assert.match(result.warning || '', /\$3.00 from Everything else/);
+  const reserved = purchase({ cents: 500, status: 'processing', allocations: result.allocations });
+  const totals = usage([...history, reserved], period);
+  assert.equal(totals.used.Food, 3000);
+  assert.equal(totals.used['Everything else'], 300);
+  assert.equal(totals.reserved, 500);
+  assert.equal(totals.spent, 2800);
+});
+
+test('coverage can use multiple donors but never exceeds the cap or bypasses controls', () => {
+  const policy = {
+    ...defaultPolicy,
+    threshold: 10000,
+    limits: { Food: 1000, Groceries: 500, Transport: 8000, 'Everything else': 500 },
+  };
+  const result = evaluate(policy, [], period, 1800, 'Food');
+  assert.deepEqual(result.allocations, { Food: 1000, 'Everything else': 500, Groceries: 300 });
+  assert.equal(evaluate(policy, [], period, 2001, 'Food').status, 'approval');
+  assert.equal(evaluate({ ...policy, softLimit: 0 }, [], period, 1001, 'Food').status, 'approval');
+  assert.equal(evaluate({ ...policy, frozen: true }, [], period, 1800, 'Food').status, 'blocked');
+  assert.equal(
+    evaluate({ ...policy, threshold: 1500 }, [], period, 1800, 'Food').status,
     'approval',
   );
+  assert.equal(evaluate(policy, [], period, 10001, 'Food').status, 'blocked');
+  assert.throws(() => validatePolicy({ ...policy, softLimit: 1001 }));
+});
+
+test('insufficient donor categories need approval even when released vault money increases total capacity', () => {
+  const policy = {
+    ...defaultPolicy,
+    allowance: 1000,
+    walletBonus: 5000,
+    limits: { Food: 1000, Groceries: 0, Transport: 0, 'Everything else': 0 },
+  };
+  assert.equal(evaluate(policy, [], period, 1500, 'Food').status, 'approval');
+  const old = purchase({
+    cents: 500,
+    status: 'processing',
+    period: 'old',
+    allocations: { Food: 200, Transport: 300 },
+  });
+  assert.equal(usage([old], period).used.Transport, 300);
+  assert.equal(usage([{ ...old, status: 'declined' }], period).reserved, 0);
 });
 test('a parent can grant a category exception, but cannot bypass the total or freeze', () => {
   assert.equal(evaluate(defaultPolicy, [], period, 4500, 'Everything else', true).status, 'ready');

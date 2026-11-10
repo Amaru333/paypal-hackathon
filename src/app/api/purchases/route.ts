@@ -11,6 +11,7 @@ export const POST = route(async (req) =>
         childId: identifier.optional(),
         key: z.string().min(1).max(64),
         productId: identifier,
+        prepare: z.boolean().optional(),
       }),
     ),
   ),

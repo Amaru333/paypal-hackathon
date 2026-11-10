@@ -1,10 +1,13 @@
 import type { Budget, Purchase as PurchaseRow } from '@/generated/prisma/client';
 import type { Policy, Purchase, Category } from '@/domain/wallet';
+import type { MerchantReceipt, ReceiptClassification } from '@/domain/receipt';
 
 export function toPolicy(budget: Budget): Policy {
   return {
     allowance: budget.allowance,
+    walletBonus: budget.walletBonus,
     threshold: budget.threshold,
+    softLimit: budget.softLimit,
     frozen: budget.frozen,
     periodDays: budget.periodDays,
     limits: {
@@ -19,6 +22,7 @@ export function budgetFields(policy: Policy) {
   return {
     allowance: policy.allowance,
     threshold: policy.threshold,
+    softLimit: policy.softLimit ?? 1000,
     frozen: policy.frozen,
     periodDays: policy.periodDays,
     food: policy.limits.Food,
@@ -38,6 +42,12 @@ export function toPurchase(row: PurchaseRow): Purchase {
     category: row.category as Category,
     explanation: row.explanation,
     source: row.source,
+    receipt: row.receipt ? (row.receipt as unknown as MerchantReceipt) : undefined,
+    classification: row.classification
+      ? (row.classification as unknown as ReceiptClassification)
+      : undefined,
+    allocations: row.allocations as Partial<Record<Category, number>>,
+    warning: row.warning,
     status: row.status,
     reason: row.reason,
     createdAt: row.createdAt.toISOString(),

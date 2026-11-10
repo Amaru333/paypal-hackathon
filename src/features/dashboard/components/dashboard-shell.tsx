@@ -1,189 +1,173 @@
 'use client';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePocket, usePocketState } from '../pocket-provider';
 import { DashboardLoadingShell } from './dashboard-loading-shell';
 import { dashboardApi } from '../api';
 import { Brand } from '@/components/brand';
 import type { Tab } from '../types';
+import styles from './dashboard.module.css';
+
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data } = usePocketState();
   if (!data) return <DashboardLoadingShell>{children}</DashboardLoadingShell>;
   return <LoadedDashboardShell>{children}</LoadedDashboardShell>;
 }
+
 function LoadedDashboardShell({ children }: { children: React.ReactNode }) {
-  const {
-    href,
-    data,
-    busy,
-    notice,
-    setNotice,
-    error,
-    setError,
-    parent,
-    tab,
-    changeTab,
-    selectChild,
-    run,
-    logout,
-    pending,
-  } = usePocket();
+  const { href, data, busy, parent, tab, changeTab, selectChild, run, logout, pending } =
+    usePocket();
+
   const nav: Tab[] = parent
     ? data.childId
       ? ['Family', 'Overview', 'Requests', 'Budgets', 'Activity']
       : ['Family']
     : ['Overview', 'Shop', 'Activity'];
+
   const navIcons: Record<Tab, string> = {
-    Family: '♧',
-    Overview: '◫',
-    Requests: '▱',
-    Budgets: '◉',
+    Family: '◎',
+    Overview: '◈',
+    Requests: '◐',
+    Budgets: '▣',
     Activity: '↗',
-    Shop: '▧',
+    Shop: '◇',
   };
+
+  const title =
+    tab === 'Family'
+      ? 'Family'
+      : tab === 'Overview'
+        ? parent
+          ? `${data.childName}’s pocket`
+          : 'Your pocket'
+        : tab === 'Shop'
+          ? 'Shop'
+          : tab === 'Budgets'
+            ? 'Budgets'
+            : tab === 'Requests'
+              ? 'Requests'
+              : 'Activity';
+
+  const subtitle =
+    tab === 'Family'
+      ? 'Add children, share invitations, and jump into any pocket.'
+      : tab === 'Overview'
+        ? parent
+          ? `What’s left in ${data.childName}’s allowance this period.`
+          : 'See what’s left and what’s already spent.'
+        : tab === 'Shop'
+          ? 'Try a purchase within your family’s limits.'
+          : tab === 'Budgets'
+            ? `Set ${data.childName}’s allowance, categories, and approval threshold.`
+            : tab === 'Requests'
+              ? `Approve or decline purchases waiting on you.`
+              : 'Purchases, decisions, and payment confirmations.';
+
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <Brand />
-        <div className="family-label">YOUR FAMILY SPACE</div>
-        <nav>
-          {nav.map((item, i) => (
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.brandWrap}>
+          <Brand />
+        </div>
+        <div className={styles.navLabel}>{parent ? 'Parent dashboard' : 'My pocket'}</div>
+        <nav className={styles.nav} aria-label="Dashboard">
+          {nav.map((item) => (
             <Link
               key={item}
-              className={tab === item ? 'nav-item active' : 'nav-item'}
+              className={`${styles.navItem} ${tab === item ? styles.navItemActive : ''}`}
               href={href(item)}
             >
-              <span className="nav-icon">{navIcons[item]}</span>
-              {item}
-              {item === 'Requests' && pending.length > 0 ? (
-                <b className="nav-count">{pending.length}</b>
-              ) : (
-                <small>0{i + 1}</small>
+              <span className={styles.navIcon} aria-hidden="true">
+                {navIcons[item]}
+              </span>
+              <span>{item}</span>
+              {item === 'Requests' && pending.length > 0 && (
+                <b className={styles.navCount}>{pending.length}</b>
               )}
             </Link>
           ))}
         </nav>
-        <div className="sidebar-note">
-          <span>✦</span>
-          <h3>
-            Little choices.
-            <br />
-            Lasting confidence.
-          </h3>
-          <p>
-            Make space for learning,
-            <br />
-            one purchase at a time.
-          </p>
-        </div>
-        <div className="sidebar-bottom">
-          <div className="avatar">{(parent ? data.parentName : data.childName).slice(0, 1)}</div>
+        <div className={styles.sidebarFoot}>
+          <div className={styles.avatar}>
+            {(parent ? data.parentName : data.childName).slice(0, 1)}
+          </div>
           <div>
             <strong>{parent ? data.parentName : data.childName}</strong>
-            <small>{parent ? 'Parent account' : 'My pocket'}</small>
+            <small>{parent ? 'Parent' : 'Child'}</small>
           </div>
-          <button aria-label="Sign out" title="Sign out" onClick={logout}>
-            ↪
-          </button>
+          <Button variant="ghost" className={styles.signOut} onClick={logout}>
+            Sign out
+          </Button>
         </div>
       </aside>
-      <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumb">
-            Your family <span>/</span> {tab}
+
+      <div className={styles.main}>
+        <header className={styles.topbar}>
+          <div className={styles.crumb}>
+            {parent ? <Link href="/parent/family">Family</Link> : <span>My pocket</span>}
+            {tab !== 'Family' && (
+              <>
+                <span className={styles.crumbSep}>/</span>
+                {parent && (
+                  <>
+                    <span>{data.childName}</span>
+                    <span className={styles.crumbSep}>/</span>
+                  </>
+                )}
+                <span>{tab}</span>
+              </>
+            )}
           </div>
-          <div className="topbar-right">
-            {parent && data.children.length > 0 && (
-              <select
-                className="child-picker"
+          <div className={styles.topActions}>
+            {parent && tab !== 'Family' && data.children.length > 0 && (
+              <NativeSelect
+                className={`child-picker ${styles.childSelect}`}
                 aria-label="Choose a child"
                 disabled={busy}
                 value={data.childId || ''}
                 onChange={(e) => selectChild(e.target.value)}
               >
-                {data.children.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}’s pocket
+                {data.children.map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {child.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
-            <span className="avatar small">{data.childName.slice(0, 1)}</span>
           </div>
         </header>
-        <main className="dashboard">
-          <div className="page-heading">
+
+        <main className={styles.content}>
+          <div className={styles.heading}>
             <div>
-              <span className="eyebrow">
-                {parent ? 'A LITTLE GUIDANCE GOES A LONG WAY' : 'YOUR MONEY JOURNEY STARTS HERE'}
-              </span>
-              <h1>
-                {tab === 'Family'
-                  ? `Your people, ${data.parentName}.`
-                  : tab === 'Overview'
-                    ? parent
-                      ? `Good to see you, ${data.parentName}.`
-                      : `Hey, ${data.childName}. Make it yours.`
-                    : tab === 'Shop'
-                      ? 'Small choices. Big possibilities.'
-                      : tab === 'Budgets'
-                        ? 'Room to spend. Space to learn.'
-                        : tab === 'Requests'
-                          ? 'A little say in the big things.'
-                          : 'Every little step.'}
-              </h1>
-              <p className="muted">
-                {tab === 'Family'
-                  ? 'A little freedom looks different for everyone. Start with an invitation.'
-                  : tab === 'Overview'
-                    ? parent
-                      ? `Here’s how ${data.childName}’s pocket is looking.`
-                      : 'A little independence, with your family behind you.'
-                    : tab === 'Shop'
-                      ? 'Explore the shop and put your budget into practice.'
-                      : tab === 'Budgets'
-                        ? 'Set the boundaries that work for your family.'
-                        : tab === 'Requests'
-                          ? 'Review the purchase, understand the reason, and make the call.'
-                          : 'Your purchases, decisions, and payment confirmations.'}
-              </p>
+              <h1>{title}</h1>
+              <p>{subtitle}</p>
             </div>
             {parent && tab === 'Overview' && (
-              <button className="button secondary" onClick={() => changeTab('Budgets')}>
-                Manage allowance ↗
-              </button>
+              <Button
+                variant="ghost"
+                className="button secondary"
+                onClick={() => changeTab('Budgets')}
+              >
+                Edit budgets
+              </Button>
             )}
           </div>
-          <div aria-live="polite">
-            {notice && (
-              <div className="message success">
-                <span>✓</span>
-                {notice}
-                <button aria-label="Dismiss message" onClick={() => setNotice('')}>
-                  ×
-                </button>
-              </div>
-            )}
-            {error && (
-              <div className="message error" role="alert">
-                {error}
-                <button aria-label="Dismiss error" onClick={() => setError('')}>
-                  ×
-                </button>
-              </div>
-            )}
-          </div>
-          {!data.connected && tab !== 'Family' && (
-            <div className="connection-banner">
+
+          {!data.connected && tab !== 'Family' && (!parent || tab === 'Budgets') && (
+            <div className={styles.banner}>
               <div>
-                <strong>One connection. A little more freedom.</strong>
+                <strong>Connect PayPal to try purchases</strong>
                 <p>
                   {parent
-                    ? 'Connect a PayPal test account to try purchases. No real money moves.'
-                    : 'Your parent needs to connect PayPal before you can make purchases.'}
+                    ? 'Use a PayPal sandbox account. No real money moves.'
+                    : 'Ask your parent to connect PayPal before you can buy anything.'}
                 </p>
               </div>
               {parent && (
-                <button
+                <Button
+                  variant="ghost"
                   disabled={busy}
                   className="button primary"
                   onClick={() =>
@@ -193,23 +177,26 @@ function LoadedDashboardShell({ children }: { children: React.ReactNode }) {
                     })
                   }
                 >
-                  Connect PayPal ↗
-                </button>
+                  Connect PayPal
+                </Button>
               )}
             </div>
           )}
+
           {data.policy.frozen && tab !== 'Family' && (
-            <div className="message paused">
-              Ⅱ &nbsp; Spending is paused.{' '}
+            <div className={styles.paused}>
+              Spending is paused.
               {parent
-                ? 'Resume it when you’re ready.'
-                : 'Your parent will let you know when you can shop again.'}
+                ? ' Resume it from Budgets when you’re ready.'
+                : ' Your parent will let you know when shopping opens again.'}
             </div>
           )}
+
           {children}
-          <footer className="dashboard-footer">
+
+          <footer className={styles.footer}>
             <span>
-              <b>pocket</b> &nbsp; A little freedom, thoughtfully given.
+              <b>pocket</b> · Parent-guided spending practice
             </span>
           </footer>
         </main>

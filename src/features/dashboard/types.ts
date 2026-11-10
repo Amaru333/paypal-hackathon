@@ -1,8 +1,15 @@
 import type { Category, Policy, Purchase, Role } from '@/domain/wallet';
+import type { SpendingForecast } from '@/domain/forecast';
 export type ChildSummary = {
   id: string;
   name: string;
   username?: string;
+  vault?: { enabled: boolean; balance: number };
+  spent: number;
+  reserved: number;
+  remaining: number;
+  renewsAt: string;
+  periodDays: number;
   joined: boolean;
   invitationStatus: 'joined' | 'pending' | 'expired' | 'not-invited';
   expiresAt?: number;
@@ -10,9 +17,17 @@ export type ChildSummary = {
   frozen: boolean;
   requests: number;
 };
-export type InviteResult = { childId: string; url: string; expiresAt: number };
+export type InviteResult = {
+  childId: string;
+  url: string;
+  expiresAt: number;
+  email?: string | null;
+  emailStatus: 'sent' | 'failed' | 'not_configured' | 'missing_email';
+};
 export type Snapshot = {
+  forecast?: SpendingForecast;
   initialized: boolean;
+  vault?: { enabled: boolean; balance: number };
   childId: string | null;
   children: ChildSummary[];
   role: Role;

@@ -81,6 +81,10 @@ OpenAI Responses structured outputs classify products and draft budgets from pla
 
 The legacy importer is transactional and refuses conflicting records; it never overwrites the source file or existing accounts. Pass `-- --file=path/to/family.json` to select a file, and `--email=you@example.com` if the old parent has no email. Old sessions and unfinished PayPal consent flows are not imported: sign in again and restart consent if needed. Root invitation links from the prior prototype redirect to the new invitation page.
 
+## Hackathon demo
+
+For the hackathon presentation, the landing page includes read-only Parent and Teen previews and a simulated checkout without signup. Use the [two-minute judge demo](docs/judge-demo.md) for the pitch and the separate actual PayPal sandbox rehearsal. Public samples never prove an actual payment. See the [completed milestone roadmap](docs/milestones.md).
+
 ## Checks
 
 ```sh

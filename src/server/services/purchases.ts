@@ -10,6 +10,7 @@ import { classify } from '@/server/integrations/openai';
 import { ownedChild } from './children';
 import { currentBudget } from './budgets';
 import { settlePurchase } from './payments';
+import { receiptFor } from '@/server/catalog';
 
 async function reserve(tx: Transaction, identity: Identity, purchase: Purchase) {
   const child = await ownedChild(identity, purchase.childId, tx);
@@ -34,7 +35,12 @@ async function reserve(tx: Transaction, identity: Identity, purchase: Purchase) 
     if (!connection)
       return tx.purchase.update({
         where: { id: purchase.id },
-        data: { status: 'ready', reason: 'Ready when your parent connects PayPal sandbox.' },
+        data: {
+          status: 'ready',
+          reason: 'Ready when your parent connects PayPal sandbox.',
+          allocations: decision.allocations,
+          warning: decision.warning,
+        },
       });
     purchase = await tx.purchase.update({
       where: { id: purchase.id },
@@ -43,6 +49,8 @@ async function reserve(tx: Transaction, identity: Identity, purchase: Purchase) 
         period: budget.periodStart,
         attemptedAt: new Date(),
         reason: 'Sandbox payment is being processed.',
+        allocations: decision.allocations,
+        warning: decision.warning,
       },
     });
   }
@@ -62,7 +70,7 @@ async function finish(purchase: Purchase, shouldSettle: boolean) {
 }
 export async function createPurchase(
   identity: Identity,
-  input: { childId?: string; key: string; productId: string },
+  input: { childId?: string; key: string; productId: string; prepare?: boolean },
 ) {
   const child = await ownedChild(identity, input.childId);
   const previous = await database().purchase.findUnique({
@@ -71,7 +79,8 @@ export async function createPurchase(
   if (previous) return { purchase: toPurchase(previous) };
   const product = products.find((p) => p.id === input.productId);
   if (!product) throw new HttpError('Unknown product.');
-  const classification = await classify(product);
+  const receipt = receiptFor(product);
+  const classification = await classify(product, receipt);
   const result = await familyTransaction(identity.parentId, async (tx) => {
     const duplicate = await tx.purchase.findUnique({
       where: { childId_key: { childId: child.id, key: input.key } },
@@ -86,10 +95,10 @@ export async function createPurchase(
       product.cents,
       classification.category,
     );
-    if (decision.status === 'ready' && classification.confidence < 0.85)
+    if (decision.status === 'ready' && classification.needsReview)
       decision = {
         status: 'approval',
-        reason: 'AI is uncertain about the category. A parent should review it.',
+        reason: 'Receipt classification needs parent review. No payment has been sent.',
       };
     let purchase = await tx.purchase.create({
       data: {
@@ -101,11 +110,19 @@ export async function createPurchase(
         category: classification.category,
         explanation: classification.explanation,
         source: classification.source,
+        receipt,
+        classification: {
+          confidence: classification.confidence,
+          needsReview: classification.needsReview,
+          items: classification.items,
+        },
         period: budget.periodStart,
         ...decision,
       },
     });
-    if (purchase.status === 'ready') purchase = await reserve(tx, identity, purchase);
+    // A checkout plan is not a reservation. Payment rechecks under the family lock.
+    if (purchase.status === 'ready' && !input.prepare)
+      purchase = await reserve(tx, identity, purchase);
     return { purchase, settle: true };
   });
   return finish(result.purchase, result.settle);

@@ -3,6 +3,8 @@ export type Category = (typeof categories)[number];
 export type Role = 'parent' | 'child';
 export type Policy = {
   allowance: number;
+  walletBonus?: number;
+  softLimit?: number;
   threshold: number;
   limits: Record<Category, number>;
   frozen: boolean;
@@ -27,6 +29,10 @@ export type Purchase = {
   captureId?: string;
   error?: string;
   parentApproved?: boolean;
+  allocations?: Partial<Record<Category, number>>;
+  warning?: string;
+  receipt?: MerchantReceipt;
+  classification?: ReceiptClassification;
 };
 export const products: {
   id: string;
@@ -94,6 +100,7 @@ export const products: {
 ];
 export const defaultPolicy: Policy = {
   allowance: 10000,
+  softLimit: 1000,
   threshold: 2500,
   periodDays: 7,
   frozen: false,
@@ -106,7 +113,9 @@ export function usage(purchases: Purchase[], period: string) {
   for (const p of purchases) {
     if (p.period !== period && p.status !== 'processing') continue;
     if (p.status === 'paid' || p.status === 'processing') {
-      used[p.category] += p.cents;
+      if (p.allocations && Object.keys(p.allocations).length) {
+        for (const category of categories) used[category] += p.allocations[category] || 0;
+      } else used[p.category] += p.cents;
       if (p.status === 'paid') spent += p.cents;
       else reserved += p.cents;
     }
@@ -124,20 +133,52 @@ export function evaluate(
   const totals = usage(purchases, period);
   if (policy.frozen)
     return { status: 'blocked' as const, reason: 'Spending is paused by your parent.' };
-  if (totals.spent + totals.reserved + cents > policy.allowance)
+  if (totals.spent + totals.reserved + cents > policy.allowance + (policy.walletBonus || 0))
     return {
       status: 'blocked' as const,
       reason: 'This would exceed the total allowance. Your parent can update the budget.',
     };
   if (!approved && cents > policy.threshold)
     return { status: 'approval' as const, reason: 'This purchase is above the approval limit.' };
-  if (!approved && totals.used[category] + cents > policy.limits[category])
+  const available = Math.max(0, policy.limits[category] - totals.used[category]);
+  const shortfall = Math.max(0, cents - available);
+  const allocations: Partial<Record<Category, number>> = { [category]: cents };
+  if (!approved && shortfall) {
+    if (shortfall > (policy.softLimit ?? 1000))
+      return {
+        status: 'approval' as const,
+        reason: `This needs an exception to the ${category.toLowerCase()} budget.`,
+      };
+    allocations[category] = cents - shortfall;
+    let needed = shortfall;
+    const donors: string[] = [];
+    // Use discretionary money first. Vault savings are never available here.
+    for (const donor of ['Everything else', 'Groceries', 'Transport', 'Food'] as Category[]) {
+      if (donor === category) continue;
+      const take = Math.min(needed, Math.max(0, policy.limits[donor] - totals.used[donor]));
+      if (take) {
+        allocations[donor] = take;
+        donors.push(`$${(take / 100).toFixed(2)} from ${donor}`);
+        needed -= take;
+      }
+    }
+    if (needed)
+      return {
+        status: 'approval' as const,
+        reason: 'Not enough unspent category budget to cover this shortfall. Ask your parent.',
+      };
+    const warning = `Soft Decline: ${category} was $${(shortfall / 100).toFixed(2)} short. Covered by ${donors.join(' and ')}. You have less to spend in those categories this period.`;
     return {
-      status: 'approval' as const,
-      reason: `This needs an exception to the ${category.toLowerCase()} budget.`,
+      status: 'ready' as const,
+      reason: 'Category shortfall covered within your allowance.',
+      allocations,
+      warning,
     };
+  }
   return {
     status: 'ready' as const,
+    allocations,
+    warning: '',
     reason: approved
       ? 'Your parent approved this purchase.'
       : 'Within your allowance and category budget.',
@@ -152,6 +193,7 @@ export function validatePolicy(value: unknown): Policy {
     !cents(v.allowance) ||
     v.allowance < 100 ||
     !cents(v.threshold) ||
+    (v.softLimit !== undefined && (!cents(v.softLimit) || v.softLimit > 1000)) ||
     typeof v.frozen !== 'boolean' ||
     ![1, 7, 30].includes(v.periodDays) ||
     !v.limits ||
@@ -164,9 +206,11 @@ export function validatePolicy(value: unknown): Policy {
   }
   return {
     allowance: v.allowance,
+    softLimit: v.softLimit ?? 1000,
     threshold: v.threshold,
     frozen: v.frozen,
     periodDays: v.periodDays,
     limits: Object.fromEntries(categories.map((c) => [c, v.limits[c]])) as Record<Category, number>,
   };
 }
+import type { MerchantReceipt, ReceiptClassification } from './receipt';

@@ -38,6 +38,7 @@ model Child {
   parentId     String
   parent       Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
   name         String
+  email        String?
   username     String?  @unique
   passwordHash String?
   joinedAt     DateTime?
@@ -54,6 +55,7 @@ model Budget {
   child        Child @relation(fields: [childId], references: [id], onDelete: Cascade)
   allowance    Int
   threshold    Int
+  softLimit    Int @default(1000)
   food         Int
   groceries    Int
   transport    Int
@@ -61,6 +63,9 @@ model Budget {
   frozen       Boolean @default(false)
   periodDays   Int @default(7)
   periodStart  DateTime @default(now())
+  vaultEnabled Boolean @default(false)
+  vaultBalance Int @default(0)
+  walletBonus Int @default(0)
 }
 
 model Invitation {
@@ -127,6 +132,10 @@ model Purchase {
   captureId      String? @unique
   error          String?
   parentApproved Boolean @default(false)
+  allocations    Json @default("{}")
+  warning        String @default("")
+  receipt        Json?
+  classification Json?
   leaseToken     String?
   leaseUntil     DateTime?
   @@unique([childId, key])

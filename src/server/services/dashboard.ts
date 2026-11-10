@@ -4,6 +4,7 @@ import { familyTransaction } from '@/server/db/transactions';
 import { toPolicy, toPurchase } from '@/server/db/mappers';
 import { currentBudget } from './budgets';
 import { ownedChild } from './children';
+import { spendingForecast } from '@/domain/forecast';
 
 export function dashboard(identity: Identity, childId?: string) {
   return familyTransaction(identity.parentId, async (tx) => {
@@ -20,7 +21,34 @@ export function dashboard(identity: Identity, childId?: string) {
       },
       orderBy: { createdAt: 'asc' },
     });
-    const selectedId = childId || children[0]?.id;
+    const selectedId = childId || (identity.role === 'child' ? identity.childId : undefined);
+    const summaries = await Promise.all(
+      children.map(async (child) => {
+        const current = await currentBudget(tx, child.budget!);
+        const records = await tx.purchase.findMany({
+          where: {
+            childId: child.id,
+            OR: [{ period: current.periodStart }, { status: 'processing' }],
+          },
+        });
+        const totals = usage(records.map(toPurchase), current.periodStart.toISOString());
+        return {
+          ...(identity.role === 'parent'
+            ? { vault: { enabled: current.vaultEnabled, balance: current.vaultBalance } }
+            : {}),
+          spent: totals.spent,
+          reserved: totals.reserved,
+          remaining: Math.max(
+            0,
+            current.allowance + current.walletBonus - totals.spent - totals.reserved,
+          ),
+          renewsAt: new Date(
+            current.periodStart.getTime() + current.periodDays * 86400000,
+          ).toISOString(),
+          periodDays: current.periodDays,
+        };
+      }),
+    );
     const selected = selectedId ? await ownedChild(identity, selectedId, tx) : null;
     const budget = selected ? await currentBudget(tx, selected.budget) : null;
     const purchases = selected
@@ -39,9 +67,13 @@ export function dashboard(identity: Identity, childId?: string) {
       childId: selected?.id || null,
       childName: selected?.name || '',
       policy: budget ? toPolicy(budget) : defaultPolicy,
+      ...(identity.role === 'parent' && budget
+        ? { vault: { enabled: budget.vaultEnabled, balance: budget.vaultBalance } }
+        : {}),
       period,
       renewsAt: new Date(Date.parse(period) + (budget?.periodDays || 7) * 86400000).toISOString(),
-      children: children.map((c) => ({
+      children: children.map((c, index) => ({
+        ...summaries[index],
         id: c.id,
         name: c.name,
         username: c.username || undefined,
@@ -59,6 +91,9 @@ export function dashboard(identity: Identity, childId?: string) {
         requests: c._count.purchases,
       })),
       purchases,
+      ...(budget
+        ? { forecast: spendingForecast(toPolicy(budget), purchases, period, Date.now()) }
+        : {}),
       ...usage(purchases, period),
       connected: !!(await tx.payPalConnection.findUnique({ where: { parentId: parent.id } })),
       ai: !!process.env.OPENAI_API_KEY,

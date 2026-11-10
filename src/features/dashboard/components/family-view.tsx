@@ -13,9 +13,9 @@ export default function FamilyView() {
         busy={busy}
         invitation={invitation}
         onSelect={selectChild}
-        onAdd={async (name) => {
-          await run(async () => {
-            setInvitation(await dashboardApi.addChild(name));
+        onAdd={async (name, email) => {
+          return run(async () => {
+            setInvitation(await dashboardApi.addChild(name, email));
           });
         }}
         onInvite={async (childId) => {

@@ -1,22 +1,20 @@
 'use client';
 import { usePocket } from '../pocket-provider';
 import { PurchaseList } from '@/features/purchases/components/purchase-list';
-import type { Purchase } from '@/domain/wallet';
+import styles from './dashboard.module.css';
+
 export default function RequestsView() {
   const { pending } = usePocket();
-  const renderPurchases = (items: Purchase[], detailed = false) => (
-    <PurchaseList items={items} detailed={detailed} />
-  );
 
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <h2>
-          Needs your approval <span className="count">{pending.length}</span>
-        </h2>
-        <span className="muted">Your rules. Your call.</span>
+    <section className={styles.panel}>
+      <div className={styles.panelHead}>
+        <h2>Needs approval</h2>
+        <span>
+          {pending.length} {pending.length === 1 ? 'request' : 'requests'}
+        </span>
       </div>
-      {renderPurchases(pending, true)}
+      <PurchaseList items={pending} detailed />
     </section>
   );
 }

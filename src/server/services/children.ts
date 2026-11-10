@@ -6,6 +6,7 @@ import { familyTransaction, type Transaction } from '@/server/db/transactions';
 import { createSession, type Identity } from '@/server/auth/session';
 import { digestToken, hashPassword } from '@/server/auth/password';
 import { HttpError } from '@/server/http/errors';
+import { sendInvitationEmail } from '@/server/integrations/email';
 
 export async function ownedChild(identity: Identity, id?: string, db: Transaction = database()) {
   if (identity.role === 'child' && id && id !== identity.childId)
@@ -27,22 +28,36 @@ async function issueInvitation(tx: Transaction, childId: string, origin: string)
   await tx.invitation.upsert({ where: { childId }, create: { childId, ...data }, update: data });
   return { childId, url: `${origin}/invite#invite=${token}`, expiresAt: expiresAt.getTime() };
 }
-export function addChild(identity: Identity, name: string, origin: string) {
-  return familyTransaction(identity.parentId, async (tx) => {
+export async function addChild(identity: Identity, name: string, origin: string, email?: string) {
+  const invitation = await familyTransaction(identity.parentId, async (tx) => {
     if ((await tx.child.count({ where: { parentId: identity.parentId } })) >= 12)
       throw new HttpError('This demo supports up to 12 children per family.');
     const child = await tx.child.create({
-      data: { parentId: identity.parentId, name, budget: { create: budgetFields(defaultPolicy) } },
+      data: {
+        parentId: identity.parentId,
+        name,
+        email,
+        budget: { create: budgetFields(defaultPolicy) },
+      },
     });
     return issueInvitation(tx, child.id, origin);
   });
+  return deliverInvitation(invitation);
 }
-export function renewInvitation(identity: Identity, childId: string, origin: string) {
-  return familyTransaction(identity.parentId, async (tx) => {
+export async function renewInvitation(identity: Identity, childId: string, origin: string) {
+  const invitation = await familyTransaction(identity.parentId, async (tx) => {
     const child = await ownedChild(identity, childId, tx);
     if (child.joinedAt) throw new HttpError('This child has already joined.');
     return issueInvitation(tx, childId, origin);
   });
+  return deliverInvitation(invitation);
+}
+async function deliverInvitation(invitation: { childId: string; url: string; expiresAt: number }) {
+  const child = await database().child.findUniqueOrThrow({ where: { id: invitation.childId } });
+  const emailStatus = child.email
+    ? await sendInvitationEmail({ to: child.email, name: child.name, url: invitation.url })
+    : 'missing_email';
+  return { ...invitation, email: child.email, emailStatus };
 }
 export function revokeInvitation(identity: Identity, childId: string) {
   return familyTransaction(identity.parentId, async (tx) => {

@@ -5,14 +5,30 @@ import { familyTransaction, type Transaction } from '@/server/db/transactions';
 import { ownedChild } from './children';
 import { HttpError } from '@/server/http/errors';
 import type { Budget } from '@/generated/prisma/client';
+import { rolloverSavings } from '@/domain/vault';
 
 export async function currentBudget(tx: Transaction, budget: Budget) {
   const periodMs = budget.periodDays * 86400000;
   const elapsed = Date.now() - budget.periodStart.getTime();
   if (elapsed < periodMs) return budget;
+  if (
+    budget.vaultEnabled &&
+    (await tx.purchase.count({ where: { childId: budget.childId, status: 'processing' } }))
+  )
+    return budget;
+  const paid = await tx.purchase.aggregate({
+    where: { childId: budget.childId, period: budget.periodStart, status: 'paid' },
+    _sum: { cents: true },
+  });
+  const periods = Math.floor(elapsed / periodMs);
+  const savings = budget.vaultEnabled
+    ? rolloverSavings(budget.allowance, budget.walletBonus, paid._sum.cents || 0, periods)
+    : 0;
   return tx.budget.update({
     where: { childId: budget.childId },
     data: {
+      vaultBalance: { increment: savings },
+      walletBonus: 0,
       periodStart: new Date(
         budget.periodStart.getTime() + Math.floor(elapsed / periodMs) * periodMs,
       ),
@@ -27,7 +43,8 @@ export function updateBudget(identity: Identity, childId: string, input: unknown
     throw new HttpError((error as Error).message);
   }
   return familyTransaction(identity.parentId, async (tx) => {
-    await ownedChild(identity, childId, tx);
+    const child = await ownedChild(identity, childId, tx);
+    await currentBudget(tx, child.budget);
     await tx.budget.update({ where: { childId }, data: budgetFields(policy) });
     return { ok: true };
   });

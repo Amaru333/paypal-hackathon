@@ -1,32 +1,22 @@
 import { Brand } from '@/components/brand';
+import styles from './dashboard.module.css';
 
 export function DashboardLoadingShell({ children }: { children?: React.ReactNode }) {
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <Brand />
-        <div className="family-label">YOUR FAMILY SPACE</div>
-        <div className="sidebar-note">
-          <span>✦</span>
-          <h3>
-            Little choices.
-            <br />
-            Lasting confidence.
-          </h3>
-          <p>
-            Make space for learning,
-            <br />
-            one purchase at a time.
-          </p>
+    <div className={styles.shell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.brandWrap}>
+          <Brand />
         </div>
+        <div className={styles.navLabel}>Loading</div>
       </aside>
-      <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumb">Your family</div>
+      <div className={styles.main}>
+        <header className={styles.topbar}>
+          <div className={styles.crumb}>Opening your pocket…</div>
         </header>
-        <main className="dashboard" aria-busy="true">
-          <div className="page-heading">
-            <h1>Opening your pocket…</h1>
+        <main className={styles.content} aria-busy="true">
+          <div className={styles.heading}>
+            <h1 className={styles.loadingTitle}>Opening your pocket…</h1>
           </div>
           {children}
         </main>

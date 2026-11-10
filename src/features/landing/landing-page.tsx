@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { PocketPreview } from './pocket-preview';
+import { PublicDemo } from './public-demo';
 import s from './landing.module.css';
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
@@ -14,9 +14,9 @@ export function LandingPage() {
           <span className={s.mark}>p.</span>pocket<span className={s.spark}>✳</span>
         </Link>
         <nav aria-label="Main navigation">
-          <a href="#possibilities">Why Pocket</a>
+          <a href="#public-demo">See the app</a>
           <a href="#how-it-works">How it works</a>
-          <a href="#questions">Good to know</a>
+          <a href="#why-paypal">Why PayPal</a>
         </nav>
         <Link className={s.signin} href="/login">
           Sign in <Arrow />
@@ -25,34 +25,40 @@ export function LandingPage() {
       <main id="main">
         <section className={s.hero} aria-labelledby="hero-title">
           <div className={s.grid} aria-hidden="true" />
-          <div className={s.heroCopy}>
-            <span className={s.pill}>
-              <i /> LITTLE FREEDOM. BIG POSSIBILITIES.
-            </span>
-            <h1 id="hero-title">
-              Their first steps.
-              <br />
-              <span>Your steady hand.</span>
-            </h1>
-            <p>
-              A little independence goes a long way. Help your kids explore
-              <br className={s.desktopBreak} /> spending, with thoughtful boundaries and a pocket of
-              their own.
-            </p>
-            <div className={s.actions}>
-              <Link className={s.primary} href="/signup">
-                Start your family’s pocket <Arrow />
-              </Link>
-              <a className={s.secondary} href="#how-it-works">
-                Take a closer look <span>↓</span>
-              </a>
+          <div className={s.heroLayout}>
+            <div className={s.heroCopy}>
+              <span className={s.pill}>
+                <i /> FAMILY SPENDING, WITH PAYPAL SANDBOX
+              </span>
+              <h1 id="hero-title">
+                Small shortfall.
+                <br />
+                <span>Still lunch.</span>
+              </h1>
+              <p>
+                A $12 lunch. Only $10 left for food. Pocket can cover the $2 gap from another
+                spending category and give teen and parent a check-in. A little guidance, within the
+                parent’s limits.
+              </p>
+              <div className={s.actions}>
+                <a className={s.primary} href="#public-demo">
+                  See inside Pocket <span>↓</span>
+                </a>
+                <Link className={s.secondary} href="/signup">
+                  Start your family’s pocket <Arrow />
+                </Link>
+              </div>
+              <p className={s.paypalNote}>
+                Explore both dashboards and a simulated checkout without signing up. The signed-in
+                demo store uses PayPal Orders v2 sandbox.
+              </p>
             </div>
+            <PublicDemo />
           </div>
-          <PocketPreview />
           <div className={s.heroFoot}>
             <span>SMALL CHOICES. LIFELONG HABITS.</span>
             <span>
-              Made for growing independence <span aria-hidden="true">↘</span>
+              Independent prototype · test money only <span aria-hidden="true">↘</span>
             </span>
           </div>
         </section>
@@ -102,21 +108,21 @@ export function LandingPage() {
           <article className={`${s.feature} ${s.controlFeature}`}>
             <span className={s.featureNumber}>02 — STAY CLOSE</span>
             <h3>
-              More freedom.
-              <br />
-              Just enough guidance.
+              Soft Decline.
+              <br />A check-in, not a dead end.
             </h3>
             <p>
-              Big purchases start a conversation. Review requests and pause spending when you need
-              to.
+              A small category shortfall can borrow from other available spending categories. Both
+              dashboards show the warning. Large purchases still need approval; the total allowance
+              and spending pauses still apply.
             </p>
             <div className={s.approvalVisual}>
               <span className={s.shopIcon}>↗</span>
               <div>
-                <strong>A little check-in</strong>
-                <span>New game · $45.00</span>
+                <strong>Lunch covered</strong>
+                <span>$10 Food + $2 Everything else</span>
               </div>
-              <span className={s.reviewTag}>Needs approval</span>
+              <span className={s.reviewTag}>Sample coverage</span>
             </div>
             <div className={s.orbit} aria-hidden="true">
               <span>✳</span>
@@ -124,28 +130,56 @@ export function LandingPage() {
           </article>
           <article className={`${s.feature} ${s.aiFeature}`}>
             <div>
-              <span className={s.featureNumber}>03 — SAY IT YOUR WAY</span>
+              <span className={s.featureNumber}>03 — UNDERSTAND THE PURCHASE</span>
               <h3>
-                Your words.
-                <br />A little help from AI.
+                One store.
+                <br />
+                Different spending decisions.
               </h3>
               <p>
-                Describe your family’s rules in plain English. Get a budget draft you can review,
-                adjust, and make your own.
+                AI reads receipt items, shows its confidence, and explains the category. Uncertain
+                results need parent review. The Teen dashboard also projects spending pace, so
+                yesterday’s choices can inform tomorrow’s plans.
               </p>
             </div>
             <div className={s.aiVisual}>
               <span className={s.aiStar}>✦</span>
-              <p>
-                “$100 a week. More for food,
-                <br />a little for everything else.”
-              </p>
+              <p>Pocket Market · illustrative receipts</p>
               <div>
-                <span>✦ Budget draft ready</span>
-                <span>Review →</span>
+                <span>Apples, yogurt, granola</span>
+                <span>Groceries</span>
+              </div>
+              <div>
+                <span>Adventure video game</span>
+                <span>Everything else</span>
               </div>
             </div>
           </article>
+        </section>
+        <section className={s.paypalCase} id="why-paypal" aria-labelledby="paypal-title">
+          <div>
+            <span className={s.eyebrow}>THE OPPORTUNITY FOR PAYPAL</span>
+            <h2 id="paypal-title">
+              Be there for their
+              <br />
+              first money habits.
+            </h2>
+          </div>
+          <div>
+            <p>
+              Our business hypothesis: give families a reason to build their first spending habits
+              inside the PayPal ecosystem, before a competing app becomes the teen’s default.
+            </p>
+            <p>
+              Pocket connects parent guidance, teen spending, and a path to long-term PayPal
+              engagement. The opportunity is to earn that family relationship early, rather than
+              leave it to products like Cash App or Greenlight.
+            </p>
+            <p className={s.caseNote}>
+              This is an independent sandbox prototype, not an official PayPal Teen account or a
+              claim of proven customer retention.
+            </p>
+          </div>
         </section>
         <section className={s.how} id="how-it-works">
           <div className={s.sectionTitle}>
@@ -170,8 +204,8 @@ export function LandingPage() {
               ],
               [
                 '03',
-                'Set the pace. Let them explore.',
-                'Choose the limits, connect PayPal, and explore the shop together.',
+                'Check the budget. Then pay.',
+                'Choose budgets and connect a PayPal sandbox buyer account. In Pocket’s dummy storefront, the teen checks a budget, then pays with PayPal test money. No goods are delivered.',
               ],
             ].map(([number, title, copy]) => (
               <article key={number}>
@@ -216,9 +250,30 @@ export function LandingPage() {
                 What does AI help with?<span>+</span>
               </summary>
               <p>
-                AI turns your instructions into a budget draft and helps classify purchases. Parents
-                review budget drafts before saving. Spending rules and approvals are enforced by the
-                app.
+                AI classifies receipt items, reports confidence, explains its decisions, and can
+                draft a budget. Low-confidence, mixed-category, or failed analysis requires parent
+                review when AI is enabled. AI-off catalog fallback is labeled. Spending forecasts
+                use a transparent pace calculation; payment rules are enforced by the app.
+              </p>
+            </details>
+            <details>
+              <summary>
+                Does the public demo send a payment?<span>+</span>
+              </summary>
+              <p>
+                No. The preview uses sample data and a local simulation with no AI or PayPal API
+                calls. To demonstrate an actual sandbox capture, sign in, connect a sandbox buyer,
+                and use the demo shop. The receipt then shows the returned order and capture IDs.
+              </p>
+            </details>
+            <details>
+              <summary>
+                Where do the spending controls apply?<span>+</span>
+              </summary>
+              <p>
+                Inside Pocket’s demo-store checkout, before a PayPal sandbox payment is sent. Pocket
+                does not intercept unrelated PayPal transactions. Soft Decline uses available
+                spending categories, never the private vault.
               </p>
             </details>
             <details>
@@ -263,7 +318,7 @@ export function LandingPage() {
           </Link>
         </div>
         <div className={s.footerBottom}>
-          <span>Built for families. Designed for possibility.</span>
+          <span>Independent prototype. Not affiliated with or endorsed by PayPal.</span>
           <a href="#main">Back to top ↑</a>
         </div>
       </footer>

@@ -1,0 +1,231 @@
+.panel {
+  background: #fff;
+  border: 1px solid #e3e8e6;
+  border-radius: 18px;
+  padding: 24px;
+  margin: 22px 0;
+  color: #183445;
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #526e69;
+  font-weight: 700;
+}
+.heading h2 {
+  margin: 6px 0 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.tag {
+  background: #edf3ef;
+  padding: 6px 9px;
+  border-radius: 6px;
+  color: #405f56;
+  font-size: 10px;
+}
+.headline,
+.warning {
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 500;
+  margin: 18px 0 12px;
+}
+.warning {
+  color: #a13227;
+  background: #fff0ed;
+  border-radius: 9px;
+  padding: 12px 14px;
+}
+.note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #596b75;
+}
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px 42px;
+  margin: 22px 0;
+}
+.metrics > div {
+  display: grid;
+  gap: 4px;
+}
+.metrics span {
+  font-size: 11px;
+  color: #596b75;
+}
+.metrics strong {
+  font-size: 24px;
+  font-weight: 600;
+}
+.metrics small {
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 3px;
+}
+.chartTitle {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.graph {
+  display: flex;
+  gap: 10px;
+}
+.yAxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: #65767d;
+  padding: 2px 0 28px;
+  text-align: right;
+}
+.plot {
+  flex: 1;
+  min-width: 0;
+}
+.plot svg {
+  display: block;
+  width: 100%;
+  height: 220px;
+  overflow: visible;
+}
+.gridLine {
+  stroke: #e6ebe9;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.recordedLine {
+  fill: none;
+  stroke: #315f55;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.projectedLine {
+  fill: none;
+  stroke: #b36c27;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  vector-effect: non-scaling-stroke;
+}
+.nowLine {
+  stroke: #9caeaa;
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  vector-effect: non-scaling-stroke;
+}
+.marker {
+  fill: #183445;
+  stroke: white;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.xAxis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #65767d;
+  font-size: 10px;
+  margin-top: 7px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 18px;
+  font-size: 10px;
+  color: #596b75;
+  margin: 15px 0;
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.solidKey,
+.dashedKey {
+  display: inline-block;
+  width: 20px;
+  border-top: 2px solid #315f55;
+}
+.dashedKey {
+  border-top: 2px dashed #b36c27;
+}
+.inspector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  background: #f5f8f6;
+  padding: 12px;
+  border-radius: 8px;
+}
+.inspector label {
+  font-weight: 600;
+}
+.inspector output {
+  color: #405f56;
+}
+.inspector input {
+  width: 100%;
+  accent-color: #315f55;
+  min-height: 28px;
+  cursor: pointer;
+}
+.guidance {
+  font-size: 12px;
+  line-height: 1.7;
+  background: #fbf5e9;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 16px 0;
+  color: #715426;
+}
+.method {
+  margin-top: 16px;
+  color: #596b75;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.method summary {
+  cursor: pointer;
+  color: #315f55;
+  font-weight: 600;
+}
+.method p {
+  margin: 10px 0 0;
+}
+@media (max-width: 640px) {
+  .panel {
+    padding: 18px 14px;
+  }
+  .heading {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .metrics {
+    gap: 16px 22px;
+  }
+  .metrics strong {
+    font-size: 21px;
+  }
+  .heading h2 {
+    font-size: 19px;
+  }
+  .plot svg {
+    height: 190px;
+  }
+}

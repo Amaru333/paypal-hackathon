@@ -1,0 +1,180 @@
+.receipt {
+  display: grid;
+  gap: 16px;
+  text-align: left;
+  min-width: 0;
+}
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #465f6c;
+}
+.steps {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.number {
+  flex: 0 0 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6eee9;
+  color: #213d37;
+  font-size: 11px;
+  font-weight: 700;
+}
+.steps h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #183445;
+}
+.steps p,
+.classification p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #556773;
+}
+.classification {
+  padding: 12px 0;
+  border-top: 1px solid #e2e6e5;
+  border-bottom: 1px solid #e2e6e5;
+  font-size: 12px;
+}
+.classification span {
+  margin-left: 12px;
+  color: #556773;
+}
+.classification p {
+  margin-top: 5px;
+}
+.allocations {
+  font-size: 12px;
+  display: grid;
+  gap: 6px;
+}
+.allocations > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.references {
+  font-size: 11px;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.references dt {
+  color: #556773;
+}
+.references dd {
+  margin: 2px 0 0;
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+:global(.pocket-purchase-dialog).dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 90dvh;
+  overflow: hidden;
+}
+.price {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0;
+}
+.scrollArea {
+  overflow-y: auto;
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+  padding-right: 6px;
+}
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e6e5;
+  flex-shrink: 0;
+}
+.actions > button {
+  font-size: 11px;
+  white-space: normal;
+  height: auto;
+  min-height: 36px;
+}
+.actions > .pay,
+.actions > button:only-child {
+  grid-column: 1 / -1;
+}
+.error {
+  color: #9a2e25;
+  font-size: 12px;
+}
+.context {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #556773;
+}
+.progress {
+  padding: 12px;
+  border-radius: 8px;
+  background: #edf3f5;
+  color: #183445;
+  font-size: 13px;
+}
+.evidence {
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+}
+.merchantType {
+  color: #556773;
+  font-size: 11px;
+  margin: 4px 0 0;
+}
+.classification .confidence {
+  color: #244d45;
+  font-weight: 600;
+}
+.itemDetails summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  color: #254b5c;
+}
+.itemList {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+.itemList li {
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e6e5;
+}
+.itemList p {
+  font-size: 11px;
+  color: #556773;
+  margin: 5px 0 0;
+  line-height: 1.65;
+}
+.itemTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}

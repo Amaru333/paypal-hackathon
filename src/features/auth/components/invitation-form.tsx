@@ -1,4 +1,8 @@
 'use client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Welcome } from './welcome';
@@ -70,9 +74,9 @@ export function Invitation({
         </p>
       )}
       {error && (
-        <div className="message error" role="alert">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {parentSignedIn ? (
         <div className="message paused">
@@ -82,9 +86,9 @@ export function Invitation({
       ) : (
         info && (
           <form onSubmit={join}>
-            <label>
+            <Label>
               Your username
-              <input
+              <Input
                 name="username"
                 autoComplete="username"
                 minLength={3}
@@ -93,10 +97,10 @@ export function Invitation({
                 required
                 placeholder="maya_explores"
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Create a password
-              <input
+              <Input
                 name="password"
                 type="password"
                 autoComplete="new-password"
@@ -105,14 +109,14 @@ export function Invitation({
                 required
                 placeholder="At least 10 characters"
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Confirm your password
-              <input name="confirm" type="password" autoComplete="new-password" required />
-            </label>
-            <button className="button primary full" disabled={busy}>
+              <Input name="confirm" type="password" autoComplete="new-password" required />
+            </Label>
+            <Button variant="ghost" className="button primary full" disabled={busy}>
               {busy ? 'Making it yours…' : 'Join my family →'}
-            </button>
+            </Button>
             <p className="form-note">
               This invitation can be used once and expires{' '}
               {new Date(info.expiresAt).toLocaleString()}.
@@ -120,9 +124,9 @@ export function Invitation({
           </form>
         )
       )}
-      <button className="text-button" onClick={() => router.push('/login')}>
+      <Button variant="ghost" className="text-button" onClick={() => router.push('/login')}>
         Back to sign in
-      </button>
+      </Button>
     </Welcome>
   );
 }

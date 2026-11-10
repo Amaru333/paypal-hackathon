@@ -5,6 +5,7 @@ import type { Policy, Purchase } from '@/domain/wallet';
 import { products } from '@/domain/wallet';
 import type { Snapshot, Tab, InviteResult } from './types';
 import { dashboardApi } from './api';
+import { toast } from 'sonner';
 
 function useDashboardState() {
   const router = useRouter();
@@ -13,8 +14,14 @@ function useDashboardState() {
   const childId = params.childId;
   const [data, setData] = useState<Snapshot | null>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState('');
-  const [error, setError] = useState('');
+  const setNotice = (message: string) => {
+    if (message) toast.success(message);
+  };
+  const [error, storeError] = useState('');
+  const setError = (message: string) => {
+    storeError(message);
+    if (message) toast.error(message, { id: 'dashboard-error', duration: 8000 });
+  };
   const [draftState, setDraftState] = useState<{ childId?: string; policy: Policy } | null>(null);
   const draft = draftState?.childId === childId ? draftState?.policy || null : null;
   const setDraft = (policy: Policy | null) => setDraftState(policy ? { childId, policy } : null);
@@ -78,7 +85,7 @@ function useDashboardState() {
   function selectChild(id: string) {
     setDraft(null);
     setSelected(null);
-    router.push(href('Overview', id));
+    router.push(href(tab === 'Family' ? 'Overview' : tab, id));
   }
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -87,8 +94,10 @@ function useDashboardState() {
     try {
       await work();
       await refresh();
+      return true;
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Something went wrong.');
+      return false;
     } finally {
       setBusy(false);
     }
@@ -96,7 +105,11 @@ function useDashboardState() {
   async function purchaseAction(purchase: Purchase, action: 'approve' | 'decline' | 'retry') {
     await run(async () => {
       const result = await dashboardApi.action(purchase.id, action);
-      setNotice(result.purchase.error || result.purchase.reason);
+      setNotice(
+        result.purchase.error ||
+          (result.purchase.status === 'paid' && result.purchase.warning) ||
+          result.purchase.reason,
+      );
     });
   }
   async function logout() {
@@ -106,7 +119,12 @@ function useDashboardState() {
     });
   }
   const pending = data?.purchases.filter((p) => p.status === 'approval') || [];
-  const remaining = data ? Math.max(0, data.policy.allowance - data.spent - data.reserved) : 0;
+  const remaining = data
+    ? Math.max(
+        0,
+        data.policy.allowance + (data.policy.walletBonus || 0) - data.spent - data.reserved,
+      )
+    : 0;
   const periodName =
     data?.policy.periodDays === 1 ? 'Daily' : data?.policy.periodDays === 7 ? 'Weekly' : '30-day';
   const date = data
@@ -115,7 +133,6 @@ function useDashboardState() {
   return {
     data,
     busy,
-    notice,
     setNotice,
     error,
     setError,
@@ -145,10 +162,60 @@ function useDashboardState() {
 }
 type PocketState = ReturnType<typeof useDashboardState>;
 const PocketContext = createContext<PocketState | null>(null);
+// Public previews never mount useDashboardState, poll APIs, or execute mutation callbacks.
+export function DashboardPreviewProvider({
+  snapshot,
+  children,
+}: {
+  snapshot: Snapshot;
+  children: React.ReactNode;
+}) {
+  const state: PocketState = {
+    data: snapshot,
+    busy: true,
+    error: '',
+    draft: null,
+    invitation: null,
+    selected: null,
+    requestKey: '',
+    prompt: '',
+    parent: snapshot.role === 'parent',
+    tab: 'Overview',
+    pending: snapshot.purchases.filter((p) => p.status === 'approval'),
+    remaining: Math.max(
+      0,
+      snapshot.policy.allowance +
+        (snapshot.policy.walletBonus || 0) -
+        snapshot.spent -
+        snapshot.reserved,
+    ),
+    periodName: 'Weekly',
+    date: 'sample week',
+    setNotice: () => {},
+    setError: () => {},
+    setDraft: () => {},
+    setInvitation: () => {},
+    setSelected: () => {},
+    setRequestKey: () => {},
+    setPrompt: () => {},
+    href: () => '#public-demo',
+    changeTab: () => {},
+    selectChild: () => {},
+    run: async () => false,
+    purchaseAction: async () => {},
+    logout: async () => {},
+  };
+  return <PocketContext.Provider value={state}>{children}</PocketContext.Provider>;
+}
 export function PocketProvider({ children }: { children: React.ReactNode }) {
   const state = useDashboardState();
   const params = useParams<{ childId?: string }>();
-  const data = params.childId && params.childId !== state.data?.childId ? null : state.data;
+  const familyRoute = !params.childId && state.data?.role === 'parent';
+  const data =
+    (params.childId && params.childId !== state.data?.childId) ||
+    (familyRoute && state.data?.childId)
+      ? null
+      : state.data;
   return <PocketContext.Provider value={{ ...state, data }}>{children}</PocketContext.Provider>;
 }
 export function usePocketState() {

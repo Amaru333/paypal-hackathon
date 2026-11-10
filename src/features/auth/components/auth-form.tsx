@@ -1,7 +1,12 @@
 'use client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import type { Role } from '@/domain/wallet';
 import { Welcome } from './welcome';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 type Props = {
   initialized?: boolean;
   busy: boolean;
@@ -27,78 +32,72 @@ export function Auth({ initialized, busy, error, role, setRole, onSubmit }: Prop
           : 'Create your parent account now. Invite your children whenever you’re ready.'}
       </p>
       {error && (
-        <div className="message error" role="alert">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {initialized !== undefined && (
         <form onSubmit={onSubmit}>
           {initialized ? (
             <>
-              <div className="role-toggle">
-                <button
-                  type="button"
-                  className={role === 'parent' ? 'active' : ''}
-                  onClick={() => setRole('parent')}
-                >
-                  I’m a parent
-                </button>
-                <button
-                  type="button"
-                  className={role === 'child' ? 'active' : ''}
-                  onClick={() => setRole('child')}
-                >
-                  My pocket
-                </button>
-              </div>
+              <Tabs value={role} onValueChange={(value) => setRole(value as Role)}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="parent" className="flex-1">
+                    I’m a parent
+                  </TabsTrigger>
+                  <TabsTrigger value="child" className="flex-1">
+                    My pocket
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
               {role === 'child' ? (
-                <label>
+                <Label>
                   Your username
-                  <input
+                  <Input
                     name="username"
                     required
                     autoComplete="username"
                     placeholder="e.g. maya_explores"
                   />
-                </label>
+                </Label>
               ) : (
-                <label>
+                <Label>
                   Your email
-                  <input
+                  <Input
                     name="email"
                     type="email"
                     required
                     autoComplete="username"
                     placeholder="you@example.com"
                   />
-                </label>
+                </Label>
               )}
-              <label>
+              <Label>
                 Password
-                <input
+                <Input
                   name="password"
                   type="password"
                   required
                   autoComplete="current-password"
                   placeholder="Enter your password"
                 />
-              </label>
+              </Label>
             </>
           ) : (
             <>
-              <label>
+              <Label>
                 Your first name
-                <input
+                <Input
                   name="name"
                   required
                   maxLength={40}
                   autoComplete="given-name"
                   placeholder="Alex"
                 />
-              </label>
-              <label>
+              </Label>
+              <Label>
                 Your email
-                <input
+                <Input
                   name="email"
                   type="email"
                   required
@@ -106,10 +105,10 @@ export function Auth({ initialized, busy, error, role, setRole, onSubmit }: Prop
                   autoComplete="email"
                   placeholder="you@example.com"
                 />
-              </label>
-              <label>
+              </Label>
+              <Label>
                 Create a parent password
-                <input
+                <Input
                   name="password"
                   type="password"
                   required
@@ -118,15 +117,15 @@ export function Auth({ initialized, busy, error, role, setRole, onSubmit }: Prop
                   autoComplete="new-password"
                   placeholder="At least 10 characters"
                 />
-              </label>
+              </Label>
               <p className="form-note">
                 Your children will choose their own passwords when they accept an invitation.
               </p>
             </>
           )}
-          <button className="button primary full" disabled={busy}>
+          <Button variant="ghost" className="button primary full" disabled={busy}>
             {busy ? 'One moment…' : initialized ? 'Open my pocket →' : 'Create my parent account →'}
-          </button>
+          </Button>
         </form>
       )}
       <div className="auth-route-link">

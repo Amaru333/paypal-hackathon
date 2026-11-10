@@ -1,20 +1,20 @@
 'use client';
 import { usePocket } from '../pocket-provider';
 import { PurchaseList } from '@/features/purchases/components/purchase-list';
-import type { Purchase } from '@/domain/wallet';
+import styles from './dashboard.module.css';
+
 export default function ActivityView() {
   const { data } = usePocket();
-  const renderPurchases = (items: Purchase[], detailed = false) => (
-    <PurchaseList items={items} detailed={detailed} />
-  );
 
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <h2>The pocket journal</h2>
-        <span className="muted">{data.purchases.length} purchases</span>
+    <section className={styles.panel}>
+      <div className={styles.panelHead}>
+        <h2>Purchase history</h2>
+        <span>
+          {data.purchases.length} {data.purchases.length === 1 ? 'item' : 'items'}
+        </span>
       </div>
-      {renderPurchases(data.purchases, true)}
+      <PurchaseList items={data.purchases} detailed />
     </section>
   );
 }

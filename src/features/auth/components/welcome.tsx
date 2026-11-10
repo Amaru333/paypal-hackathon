@@ -1,3 +1,4 @@
+import { Card } from '@/components/ui/card';
 import { Brand } from '@/components/brand';
 export function Welcome({ children }: { children: React.ReactNode }) {
   return (
@@ -31,7 +32,7 @@ export function Welcome({ children }: { children: React.ReactNode }) {
         <p className="story-footer">Built for families. Powered by possibility.</p>
       </section>
       <section className="welcome-form">
-        <div className="auth-card">{children}</div>
+        <Card className="auth-card">{children}</Card>
       </section>
     </main>
   );

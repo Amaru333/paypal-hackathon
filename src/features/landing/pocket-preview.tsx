@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import s from './landing.module.css';
 
@@ -7,12 +8,22 @@ export function PocketPreview() {
   return (
     <div className={s.preview}>
       <div className={s.previewTabs} aria-label="Choose a preview">
-        <button type="button" aria-pressed={view === 'child'} onClick={() => setView('child')}>
+        <Button
+          variant="ghost"
+          type="button"
+          aria-pressed={view === 'child'}
+          onClick={() => setView('child')}
+        >
           Their pocket
-        </button>
-        <button type="button" aria-pressed={view === 'parent'} onClick={() => setView('parent')}>
+        </Button>
+        <Button
+          variant="ghost"
+          type="button"
+          aria-pressed={view === 'parent'}
+          onClick={() => setView('parent')}
+        >
           Your peace of mind
-        </button>
+        </Button>
       </div>
       <div className={s.cardScene}>
         <div className={s.sideNote}>
