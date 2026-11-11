@@ -31,6 +31,7 @@ model Parent {
   sessions     Session[]
   connection   PayPalConnection?
   paypalSetup  PayPalSetup?
+  assistantActions AssistantAction[]
 }
 
 model Child {
@@ -39,6 +40,8 @@ model Child {
   parent       Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
   name         String
   email        String?
+  birthDate    DateTime? @db.Date
+  privacyEnabled Boolean @default(false)
   username     String?  @unique
   passwordHash String?
   joinedAt     DateTime?
@@ -47,6 +50,22 @@ model Child {
   invitation   Invitation?
   sessions     Session[]
   purchases    Purchase[]
+  assistantActions AssistantAction[]
+  @@index([parentId, createdAt])
+}
+
+model AssistantAction {
+  id String @id @default(uuid())
+  parentId String
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  childId String
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+  command Json
+  baseline String
+  status String @default("pending")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  appliedAt DateTime?
   @@index([parentId, createdAt])
 }
 

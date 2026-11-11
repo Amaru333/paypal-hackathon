@@ -1,0 +1,2 @@
+ALTER TABLE "Child" ADD COLUMN "birthDate" DATE;
+ALTER TABLE "Child" ADD COLUMN "privacyEnabled" BOOLEAN NOT NULL DEFAULT false;

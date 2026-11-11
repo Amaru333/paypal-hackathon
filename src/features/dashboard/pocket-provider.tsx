@@ -6,6 +6,7 @@ import { products } from '@/domain/wallet';
 import type { Snapshot, Tab, InviteResult } from './types';
 import { dashboardApi } from './api';
 import { toast } from 'sonner';
+import type { PrivatePurchase } from '@/domain/privacy';
 
 function useDashboardState() {
   const router = useRouter();
@@ -102,14 +103,14 @@ function useDashboardState() {
       setBusy(false);
     }
   }
-  async function purchaseAction(purchase: Purchase, action: 'approve' | 'decline' | 'retry') {
+  async function purchaseAction(
+    purchase: Purchase | PrivatePurchase,
+    action: 'approve' | 'decline' | 'retry',
+  ) {
     await run(async () => {
       const result = await dashboardApi.action(purchase.id, action);
-      setNotice(
-        result.purchase.error ||
-          (result.purchase.status === 'paid' && result.purchase.warning) ||
-          result.purchase.reason,
-      );
+      const p = result.purchase;
+      setNotice(p.private ? p.reason : p.error || (p.status === 'paid' && p.warning) || p.reason);
     });
   }
   async function logout() {

@@ -11,6 +11,7 @@ export type Policy = {
   periodDays: number;
 };
 export type Purchase = {
+  private?: false;
   id: string;
   childId: string;
   key: string;

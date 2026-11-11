@@ -8,6 +8,8 @@ import { dashboardApi } from '../api';
 import { PurchaseList } from '@/features/purchases/components/purchase-list';
 import styles from './dashboard.module.css';
 import { SpendingForecastPanel } from './spending-forecast-panel';
+import { PrivacyPanel } from './privacy-panel';
+import { PrivateOverview } from './private-overview';
 
 export default function OverviewView({ preview = false }: { preview?: boolean }) {
   const { data, busy, setNotice, parent, changeTab, run, pending, remaining, periodName, date } =
@@ -18,6 +20,7 @@ export default function OverviewView({ preview = false }: { preview?: boolean })
   ).length;
   const spendable = data.policy.allowance + (data.policy.walletBonus || 0);
   const remainingPercent = spendable ? Math.min(100, (remaining / spendable) * 100) : 0;
+  if (parent && data.privacy?.enabled) return <PrivateOverview />;
 
   return (
     <>
@@ -63,6 +66,7 @@ export default function OverviewView({ preview = false }: { preview?: boolean })
         </section>
       </div>
 
+      <PrivacyPanel />
       {parent && <VaultPanel />}
       {!parent && data.forecast && (
         <SpendingForecastPanel
@@ -101,7 +105,7 @@ export default function OverviewView({ preview = false }: { preview?: boolean })
       <div className={styles.categories}>
         {categories.map((category, index) => {
           const limit = data.policy.limits[category];
-          const used = data.used[category];
+          const used = data.used?.[category] || 0;
           const left = Math.max(0, limit - used);
           return (
             <section className={styles.category} key={category}>

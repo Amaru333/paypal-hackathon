@@ -2,9 +2,11 @@
 import { usePocket } from '../pocket-provider';
 import { PurchaseList } from '@/features/purchases/components/purchase-list';
 import styles from './dashboard.module.css';
+import { PrivateOverview } from './private-overview';
 
 export default function ActivityView() {
   const { data } = usePocket();
+  if (data.role === 'parent' && data.privacy?.enabled) return <PrivateOverview />;
 
   return (
     <section className={styles.panel}>

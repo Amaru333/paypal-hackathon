@@ -2,9 +2,11 @@
 import { usePocket } from '../pocket-provider';
 import { PurchaseList } from '@/features/purchases/components/purchase-list';
 import styles from './dashboard.module.css';
+import { PrivateRequests } from './private-requests';
 
 export default function RequestsView() {
-  const { pending } = usePocket();
+  const { pending, data } = usePocket();
+  if (data.role === 'parent' && data.privacy?.enabled) return <PrivateRequests approvalsOnly />;
 
   return (
     <section className={styles.panel}>

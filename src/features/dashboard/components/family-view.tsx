@@ -13,11 +13,17 @@ export default function FamilyView() {
         busy={busy}
         invitation={invitation}
         onSelect={selectChild}
-        onAdd={async (name, email) => {
+        onAdd={async (name, email, birthDate) => {
           return run(async () => {
-            setInvitation(await dashboardApi.addChild(name, email));
+            setInvitation(await dashboardApi.addChild(name, email, birthDate));
           });
         }}
+        onBirthDate={(childId, birthDate) =>
+          run(async () => {
+            await dashboardApi.birthDate(childId, birthDate);
+            setNotice('Birth date set. From age 16, your teen controls Privacy Mode.');
+          })
+        }
         onInvite={async (childId) => {
           await run(async () => {
             setInvitation(await dashboardApi.invite(childId));

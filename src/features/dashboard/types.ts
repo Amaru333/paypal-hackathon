@@ -1,6 +1,8 @@
 import type { Category, Policy, Purchase, Role } from '@/domain/wallet';
 import type { SpendingForecast } from '@/domain/forecast';
+import type { PrivacyState, PrivatePurchase } from '@/domain/privacy';
 export type ChildSummary = {
+  privacy?: PrivacyState;
   id: string;
   name: string;
   username?: string;
@@ -25,6 +27,8 @@ export type InviteResult = {
   emailStatus: 'sent' | 'failed' | 'not_configured' | 'missing_email';
 };
 export type Snapshot = {
+  privacy?: PrivacyState;
+  privateRequests?: PrivatePurchase[];
   forecast?: SpendingForecast;
   initialized: boolean;
   vault?: { enabled: boolean; balance: number };
@@ -37,7 +41,7 @@ export type Snapshot = {
   period: string;
   renewsAt: string;
   purchases: Purchase[];
-  used: Record<Category, number>;
+  used?: Record<Category, number>;
   spent: number;
   reserved: number;
   connected: boolean;

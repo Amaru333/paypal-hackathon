@@ -11,7 +11,8 @@ type Props = {
   members: ChildSummary[];
   busy: boolean;
   invitation: InviteResult | null;
-  onAdd: (name: string, email: string) => Promise<boolean>;
+  onAdd: (name: string, email: string, birthDate: string) => Promise<boolean>;
+  onBirthDate: (id: string, birthDate: string) => Promise<boolean>;
   onInvite: (id: string) => Promise<void>;
   onRevoke: (id: string) => Promise<void>;
   onSelect: (id: string) => void;
@@ -30,9 +31,56 @@ function statusCopy(child: ChildSummary) {
   return 'Needs an invitation';
 }
 
+function BirthDateSetup({
+  child,
+  busy,
+  save,
+}: {
+  child: ChildSummary;
+  busy: boolean;
+  save: Props['onBirthDate'];
+}) {
+  const [date, setDate] = useState('');
+  if (child.privacy?.birthDate)
+    return (
+      <p>
+        Privacy Mode {child.privacy.enabled ? 'on · overall totals only' : 'off'} · Age{' '}
+        {child.privacy.age}
+      </p>
+    );
+  return (
+    <form
+      onSubmit={async (event) => {
+        event.preventDefault();
+        await save(child.id, date);
+      }}
+    >
+      <Label>
+        Birth date for {child.name}
+        <Input
+          type="date"
+          required
+          min="1900-01-01"
+          max={new Date().toISOString().slice(0, 10)}
+          value={date}
+          onChange={(event) => setDate(event.target.value)}
+        />
+      </Label>
+      <p className="form-note">
+        Set once. From age 16, your teen chooses Privacy Mode. Check the date carefully; it cannot
+        be changed here.
+      </p>
+      <Button variant="ghost" className="button small" disabled={busy}>
+        Set birth date
+      </Button>
+    </form>
+  );
+}
+
 export default function Family(props: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [copied, setCopied] = useState(false);
 
   return (
@@ -55,9 +103,10 @@ export default function Family(props: Props) {
                   <div className={styles.childMeta}>
                     <h3>{child.name}</h3>
                     <p>{statusCopy(child)}</p>
+                    <BirthDateSetup child={child} busy={props.busy} save={props.onBirthDate} />
                     <div className={styles.childStats}>
                       <span className={styles.chip}>
-                        {money(child.remaining)} left of {money(child.allowance)}
+                        {money(child.remaining)} available · {money(child.allowance)} base budget
                       </span>
                       <span className={styles.chip}>{periodLabel(child.periodDays)}</span>
                       {child.requests > 0 && (
@@ -125,9 +174,10 @@ export default function Family(props: Props) {
           <form
             onSubmit={async (event) => {
               event.preventDefault();
-              if (!(await props.onAdd(name, email))) return;
+              if (!(await props.onAdd(name, email, birthDate))) return;
               setName('');
               setEmail('');
+              setBirthDate('');
               setCopied(false);
             }}
           >
@@ -153,6 +203,20 @@ export default function Family(props: Props) {
                 placeholder="child@example.com"
               />
             </Label>
+            <Label>
+              Child’s birth date
+              <Input
+                type="date"
+                required
+                min="1900-01-01"
+                max={new Date().toISOString().slice(0, 10)}
+                value={birthDate}
+                onChange={(event) => setBirthDate(event.target.value)}
+              />
+            </Label>
+            <p className="form-note">
+              From age 16, your teen can choose Privacy Mode. This date cannot be changed once set.
+            </p>
             <Button variant="ghost" className="button primary full" disabled={props.busy}>
               {props.busy ? 'Working…' : 'Add child & invite'}
             </Button>

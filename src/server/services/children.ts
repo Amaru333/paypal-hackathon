@@ -7,6 +7,7 @@ import { createSession, type Identity } from '@/server/auth/session';
 import { digestToken, hashPassword } from '@/server/auth/password';
 import { HttpError } from '@/server/http/errors';
 import { sendInvitationEmail } from '@/server/integrations/email';
+import { validBirthDate, privacyState } from '@/domain/privacy';
 
 export async function ownedChild(identity: Identity, id?: string, db: Transaction = database()) {
   if (identity.role === 'child' && id && id !== identity.childId)
@@ -28,7 +29,14 @@ async function issueInvitation(tx: Transaction, childId: string, origin: string)
   await tx.invitation.upsert({ where: { childId }, create: { childId, ...data }, update: data });
   return { childId, url: `${origin}/invite#invite=${token}`, expiresAt: expiresAt.getTime() };
 }
-export async function addChild(identity: Identity, name: string, origin: string, email?: string) {
+export async function addChild(
+  identity: Identity,
+  name: string,
+  origin: string,
+  email?: string,
+  birthDate?: string,
+) {
+  const birth = birthDate ? parseBirthDate(birthDate) : null;
   const invitation = await familyTransaction(identity.parentId, async (tx) => {
     if ((await tx.child.count({ where: { parentId: identity.parentId } })) >= 12)
       throw new HttpError('This demo supports up to 12 children per family.');
@@ -37,12 +45,43 @@ export async function addChild(identity: Identity, name: string, origin: string,
         parentId: identity.parentId,
         name,
         email,
+        birthDate: birth,
         budget: { create: budgetFields(defaultPolicy) },
       },
     });
     return issueInvitation(tx, child.id, origin);
   });
   return deliverInvitation(invitation);
+}
+function parseBirthDate(value: string) {
+  try {
+    return validBirthDate(value);
+  } catch (error) {
+    throw new HttpError((error as Error).message);
+  }
+}
+export function setBirthDate(identity: Identity, childId: string, value: string) {
+  if (identity.role !== 'parent') throw new HttpError('Only parents can set a birth date.', 403);
+  const birthDate = parseBirthDate(value);
+  return familyTransaction(identity.parentId, async (tx) => {
+    const child = await ownedChild(identity, childId, tx);
+    if (child.birthDate)
+      throw new HttpError('The birth date is already set and cannot be changed.', 409);
+    await tx.child.update({ where: { id: child.id }, data: { birthDate } });
+    return { ok: true };
+  });
+}
+export function setPrivacy(identity: Identity, childId: string, enabled: boolean) {
+  if (identity.role !== 'child') throw new HttpError('Only the teen can change Privacy Mode.', 403);
+  return familyTransaction(identity.parentId, async (tx) => {
+    const child = await ownedChild(identity, childId, tx);
+    if (enabled && !privacyState(child).eligible)
+      throw new HttpError(
+        'Privacy Mode is available from age 16 once a parent has set your birth date.',
+      );
+    await tx.child.update({ where: { id: child.id }, data: { privacyEnabled: enabled } });
+    return { ok: true };
+  });
 }
 export async function renewInvitation(identity: Identity, childId: string, origin: string) {
   const invitation = await familyTransaction(identity.parentId, async (tx) => {

@@ -11,6 +11,7 @@ import { ownedChild } from './children';
 import { currentBudget } from './budgets';
 import { settlePurchase } from './payments';
 import { receiptFor } from '@/server/catalog';
+import { privacyState, privatePurchase } from '@/domain/privacy';
 
 async function reserve(tx: Transaction, identity: Identity, purchase: Purchase) {
   const child = await ownedChild(identity, purchase.childId, tx);
@@ -162,5 +163,14 @@ export async function purchaseAction(
       return { purchase, settle: false };
     return { purchase: await reserve(tx, identity, purchase), settle: true };
   });
-  return finish(result.purchase, result.settle);
+  const finished = await finish(result.purchase, result.settle);
+  if (identity.role !== 'parent') return finished;
+  return familyTransaction(identity.parentId, async (tx) => {
+    const child = await ownedChild(identity, finished.purchase.childId, tx);
+    return {
+      purchase: privacyState(child).enabled
+        ? privatePurchase(finished.purchase)
+        : finished.purchase,
+    };
+  });
 }

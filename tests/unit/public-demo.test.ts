@@ -21,8 +21,8 @@ test('public dashboard samples reconcile before and after the simulated purchase
   const after = sampleDashboard('child', true);
   assert.equal(before.spent, 2300);
   assert.equal(after.spent, 3500);
-  assert.equal(after.used.Food, 1000);
-  assert.equal(after.used['Everything else'], 200);
+  assert.equal(after.used!.Food, 1000);
+  assert.equal(after.used!['Everything else'], 200);
   assert.equal(after.children[0].remaining, 6500);
   assert.equal(after.forecast!.availableCents, 6500);
   assert.equal('vault' in before, false);

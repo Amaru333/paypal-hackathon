@@ -1,11 +1,17 @@
 import { request } from '@/lib/api-client';
 import type { Policy, Purchase } from '@/domain/wallet';
 import type { Snapshot, InviteResult } from './types';
+import type { PrivatePurchase } from '@/domain/privacy';
 
 export const dashboardApi = {
   state: (childId?: string) =>
     request<Snapshot>('/dashboard' + (childId ? `?childId=${encodeURIComponent(childId)}` : '')),
-  addChild: (name: string, email: string) => request<InviteResult>('/children', { name, email }),
+  addChild: (name: string, email: string, birthDate?: string) =>
+    request<InviteResult>('/children', { name, email, birthDate }),
+  birthDate: (id: string, birthDate: string) =>
+    request(`/children/${encodeURIComponent(id)}/birth-date`, { birthDate }, 'PATCH'),
+  privacy: (id: string, enabled: boolean) =>
+    request(`/children/${encodeURIComponent(id)}/privacy`, { enabled }, 'PATCH'),
   invite: (id: string) =>
     request<InviteResult>(`/children/${encodeURIComponent(id)}/invitation`, {}),
   revoke: (id: string) => request(`/children/${encodeURIComponent(id)}/invitation`, {}, 'DELETE'),
@@ -21,7 +27,10 @@ export const dashboardApi = {
   prepareCheckout: (childId: string, productId: string, key: string) =>
     request<{ purchase: Purchase }>('/purchases', { childId, productId, key, prepare: true }),
   action: (id: string, action: 'approve' | 'decline' | 'retry') =>
-    request<{ purchase: Purchase }>(`/purchases/${encodeURIComponent(id)}/actions`, { action }),
+    request<{ purchase: Purchase | PrivatePurchase }>(
+      `/purchases/${encodeURIComponent(id)}/actions`,
+      { action },
+    ),
   vault: (id: string, input: { enabled: boolean } | { cents: number }) =>
     request(`/children/${encodeURIComponent(id)}/vault`, input),
   logout: () => request('/auth/logout', {}),

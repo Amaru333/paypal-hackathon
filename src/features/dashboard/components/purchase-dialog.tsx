@@ -40,6 +40,8 @@ function LoadedPurchaseDialog() {
             action === 'prepare'
               ? await dashboardApi.prepareCheckout(data.childId!, selected.id, requestKey)
               : await dashboardApi.action(purchase!.id, 'retry');
+          if (result.purchase.private)
+            throw new Error('This checkout is only available to the teen.');
           setPurchase(result.purchase);
         }
       });

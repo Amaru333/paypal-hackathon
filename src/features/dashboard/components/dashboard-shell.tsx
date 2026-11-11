@@ -8,6 +8,7 @@ import { dashboardApi } from '../api';
 import { Brand } from '@/components/brand';
 import type { Tab } from '../types';
 import styles from './dashboard.module.css';
+import { ParentAssistant } from '@/features/assistant/components/parent-assistant';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data } = usePocketState();
@@ -24,6 +25,8 @@ function LoadedDashboardShell({ children }: { children: React.ReactNode }) {
       ? ['Family', 'Overview', 'Requests', 'Budgets', 'Activity']
       : ['Family']
     : ['Overview', 'Shop', 'Activity'];
+  const requestCount =
+    data.privateRequests?.filter((p) => p.status === 'approval').length ?? pending.length;
 
   const navIcons: Record<Tab, string> = {
     Family: '◎',
@@ -82,8 +85,8 @@ function LoadedDashboardShell({ children }: { children: React.ReactNode }) {
                 {navIcons[item]}
               </span>
               <span>{item}</span>
-              {item === 'Requests' && pending.length > 0 && (
-                <b className={styles.navCount}>{pending.length}</b>
+              {item === 'Requests' && requestCount > 0 && (
+                <b className={styles.navCount}>{requestCount}</b>
               )}
             </Link>
           ))}
@@ -120,6 +123,7 @@ function LoadedDashboardShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className={styles.topActions}>
+            {parent && <ParentAssistant />}
             {parent && tab !== 'Family' && data.children.length > 0 && (
               <NativeSelect
                 className={`child-picker ${styles.childSelect}`}

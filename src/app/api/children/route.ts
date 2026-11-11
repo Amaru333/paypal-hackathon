@@ -6,7 +6,11 @@ export const POST = route(async (req) => {
   const identity = await requireIdentity(req, 'parent');
   const input = await body(
     req,
-    z.object({ name: z.string().trim().min(1).max(40), email: z.string().trim().email().max(254) }),
+    z.object({
+      name: z.string().trim().min(1).max(40),
+      email: z.string().trim().email().max(254),
+      birthDate: z.string().optional(),
+    }),
   );
-  return addChild(identity, input.name, appOrigin(req), input.email);
+  return addChild(identity, input.name, appOrigin(req), input.email, input.birthDate);
 });

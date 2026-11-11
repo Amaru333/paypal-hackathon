@@ -31,6 +31,8 @@ const routeFiles: Record<string, string> = {
   budget: 'children/[childId]/budget',
   vault: 'children/[childId]/vault',
   freeze: 'children/[childId]/freeze',
+  birthDate: 'children/[childId]/birth-date',
+  privacy: 'children/[childId]/privacy',
   connect: 'payments/paypal/connect',
   purchase: 'purchases',
   action: 'purchases/[purchaseId]/actions',
@@ -861,6 +863,159 @@ test('PostgreSQL API: accounts, invitation lifecycle, authorization, and concurr
       const delayed = (await call('dashboard', undefined, shopper)).data;
       assert.equal(delayed.forecast.status, 'renewal-pending');
       assert.deepEqual(delayed.forecast.projected, []);
+    },
+  );
+  await t.test(
+    'teen privacy: age, ownership, overall-only reads, redacted actions and retained controls',
+    async () => {
+      const patch = (name: string, input: unknown, cookie: string, status = 200, id = childId) =>
+        call(name, input, cookie, status, { childId: id }, 'PATCH');
+      await patch('privacy', { enabled: true }, child, 400);
+      await patch('birthDate', { birthDate: '2008-01-01' }, child, 403);
+      await patch('birthDate', { birthDate: '2008-01-01' }, other, 404);
+      await patch('birthDate', { birthDate: '2099-01-01' }, parent, 400);
+      await patch('birthDate', { birthDate: '2010-02-29' }, parent, 400);
+      await patch('birthDate', { birthDate: '2008-01-01' }, parent);
+      await patch('birthDate', { birthDate: '2015-01-01' }, parent, 409);
+      await patch('birthDate', { birthDate: '2020-01-01' }, parent, 200, second.childId);
+      await patch('privacy', { enabled: true }, sibling, 400, second.childId);
+      await patch('privacy', { enabled: true }, sibling, 403);
+      await patch('privacy', { enabled: true }, parent, 403);
+      await patch('privacy', { enabled: true }, other, 403);
+      await patch('privacy', { enabled: true, birthDate: '2000-01-01' }, child, 400);
+      await patch('privacy', { enabled: true }, child);
+      const period = (await db.budget.findUniqueOrThrow({ where: { childId } })).periodStart;
+      const secrets = await Promise.all(
+        (['paid', 'approval', 'processing', 'ready', 'declined'] as const).map((status) =>
+          db.purchase.create({
+            data: {
+              childId,
+              key: randomUUID(),
+              productId: 'lunch',
+              name: 'PRIVATE-MERCHANT-SECRET',
+              cents: 100,
+              category: 'Food',
+              explanation: 'PRIVATE-AI-SECRET',
+              source: 'PRIVATE-SOURCE-SECRET',
+              status,
+              reason: 'PRIVATE-REASON-SECRET',
+              period,
+              receipt: { merchant: 'PRIVATE-RECEIPT-SECRET' },
+              classification: { items: [{ name: 'PRIVATE-ITEM-SECRET' }] },
+              warning: 'PRIVATE-WARNING-SECRET',
+              error: 'PRIVATE-ERROR-SECRET',
+              orderId: `PRIVATE-ORDER-${randomUUID()}`,
+              captureId: `PRIVATE-CAPTURE-${randomUUID()}`,
+              leaseUntil: status === 'processing' ? new Date(Date.now() + 60000) : null,
+            },
+          }),
+        ),
+      );
+      const adult = (await call(`dashboard?childId=${childId}`, undefined, parent)).data;
+      const teen = (await call('dashboard', undefined, child)).data;
+      assert.equal(adult.privacy.enabled, true);
+      assert.equal(
+        adult.children.find((c: { id: string }) => c.id === childId).privacy.enabled,
+        true,
+      );
+      assert.equal(adult.spent, teen.spent);
+      assert.equal(adult.reserved, teen.reserved);
+      assert.deepEqual(adult.purchases, []);
+      assert.equal('used' in adult, false);
+      assert.equal('forecast' in adult, false);
+      assert.doesNotMatch(JSON.stringify(adult), /PRIVATE-/);
+      for (const item of adult.privateRequests)
+        assert.deepEqual(Object.keys(item).sort(), ['cents', 'id', 'private', 'reason', 'status']);
+      for (const status of ['approval', 'processing'])
+        assert.ok(adult.privateRequests.some((p: { status: string }) => p.status === status));
+      assert.ok(teen.purchases.some((p: { name: string }) => p.name === 'PRIVATE-MERCHANT-SECRET'));
+      assert.ok(teen.used);
+      assert.ok(teen.forecast);
+      const approval = secrets.find((p) => p.status === 'approval')!;
+      const declined = (
+        await call('action', { action: 'decline' }, parent, 200, { purchaseId: approval.id })
+      ).data.purchase;
+      assert.deepEqual(Object.keys(declined).sort(), [
+        'cents',
+        'id',
+        'private',
+        'reason',
+        'status',
+      ]);
+      assert.equal(declined.status, 'declined');
+      const processing = secrets.find((p) => p.status === 'processing')!;
+      const retry = (
+        await call('action', { action: 'retry' }, parent, 200, { purchaseId: processing.id })
+      ).data.purchase;
+      assert.equal(retry.private, true);
+      assert.doesNotMatch(JSON.stringify(retry), /PRIVATE-/);
+      // The teen can enable privacy while an already-approved provider request is in flight.
+      await db.budget.update({
+        where: { childId },
+        data: { allowance: 10000, food: 3000, groceries: 2000, transport: 2000, other: 3000 },
+      });
+      await db.purchase.update({
+        where: { id: approval.id },
+        data: { status: 'approval', orderId: null, captureId: null },
+      });
+      await patch('privacy', { enabled: false }, child);
+      const originalFetch = globalThis.fetch;
+      const orderId = `PRIVATE-FINAL-ORDER-${suffix}`;
+      globalThis.fetch = async (url) => {
+        const endpoint = String(url);
+        assert.ok(endpoint.startsWith('https://api-m.sandbox.paypal.com/'));
+        if (endpoint.endsWith('/token')) {
+          await patch('privacy', { enabled: true }, child);
+          return Response.json({ access_token: 'fake-access' });
+        }
+        return Response.json({
+          id: orderId,
+          status: 'COMPLETED',
+          purchase_units: [
+            {
+              payments: {
+                captures: [
+                  {
+                    id: `PRIVATE-FINAL-CAPTURE-${suffix}`,
+                    status: 'COMPLETED',
+                    amount: { currency_code: 'USD', value: '1.00' },
+                  },
+                ],
+              },
+            },
+          ],
+        });
+      };
+      try {
+        const paid = (
+          await call('action', { action: 'approve' }, parent, 200, { purchaseId: approval.id })
+        ).data.purchase;
+        assert.equal(paid.status, 'paid');
+        assert.equal(paid.private, true);
+        assert.deepEqual(Object.keys(paid).sort(), ['cents', 'id', 'private', 'reason', 'status']);
+        assert.doesNotMatch(JSON.stringify(paid), /PRIVATE-/);
+        const owned = (await call('dashboard', undefined, child)).data;
+        assert.equal(
+          owned.purchases.find((p: { id: string }) => p.id === approval.id).captureId,
+          `PRIVATE-FINAL-CAPTURE-${suffix}`,
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+      await patch('freeze', { frozen: true }, parent);
+      assert.equal(
+        (await call('purchase', { productId: 'test', key: randomUUID() }, child)).data.purchase
+          .status,
+        'blocked',
+      );
+      await patch('freeze', { frozen: false }, parent);
+      await patch('privacy', { enabled: false }, child);
+      const shared = (await call(`dashboard?childId=${childId}`, undefined, parent)).data;
+      assert.equal(shared.privacy.enabled, false);
+      assert.ok(shared.used);
+      assert.ok(
+        shared.purchases.some((p: { name: string }) => p.name === 'PRIVATE-MERCHANT-SECRET'),
+      );
     },
   );
   await call('logout', {}, child);

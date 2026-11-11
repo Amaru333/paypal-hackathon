@@ -5,6 +5,7 @@ import { toPolicy, toPurchase } from '@/server/db/mappers';
 import { currentBudget } from './budgets';
 import { ownedChild } from './children';
 import { spendingForecast } from '@/domain/forecast';
+import { privacyState, privatePurchase } from '@/domain/privacy';
 
 export function dashboard(identity: Identity, childId?: string) {
   return familyTransaction(identity.parentId, async (tx) => {
@@ -60,12 +61,16 @@ export function dashboard(identity: Identity, childId?: string) {
         ).map(toPurchase)
       : [];
     const period = budget?.periodStart.toISOString() || new Date().toISOString();
+    const privacy = selected ? privacyState(selected) : undefined;
+    const limited = identity.role === 'parent' && privacy?.enabled;
+    const totals = usage(purchases, period);
     return {
       initialized: true,
       role: identity.role,
       parentName: parent.name,
       childId: selected?.id || null,
       childName: selected?.name || '',
+      privacy,
       policy: budget ? toPolicy(budget) : defaultPolicy,
       ...(identity.role === 'parent' && budget
         ? { vault: { enabled: budget.vaultEnabled, balance: budget.vaultBalance } }
@@ -75,6 +80,7 @@ export function dashboard(identity: Identity, childId?: string) {
       children: children.map((c, index) => ({
         ...summaries[index],
         id: c.id,
+        privacy: privacyState(c),
         name: c.name,
         username: c.username || undefined,
         joined: !!c.joinedAt,
@@ -90,11 +96,20 @@ export function dashboard(identity: Identity, childId?: string) {
         frozen: c.budget!.frozen,
         requests: c._count.purchases,
       })),
-      purchases,
-      ...(budget
+      purchases: limited ? [] : purchases,
+      ...(limited
+        ? {
+            privateRequests: purchases
+              .filter((p) => p.status === 'approval' || p.status === 'processing')
+              .map(privatePurchase),
+          }
+        : {}),
+      ...(budget && !limited
         ? { forecast: spendingForecast(toPolicy(budget), purchases, period, Date.now()) }
         : {}),
-      ...usage(purchases, period),
+      spent: totals.spent,
+      reserved: totals.reserved,
+      ...(!limited ? { used: totals.used } : {}),
       connected: !!(await tx.payPalConnection.findUnique({ where: { parentId: parent.id } })),
       ai: !!process.env.OPENAI_API_KEY,
     };
