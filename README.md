@@ -2,6 +2,22 @@
 
 A PayPal sandbox + OpenAI prototype for parent-guided spending, built with Next.js App Router, TypeScript, PostgreSQL, and Prisma.
 
+## System architecture
+
+Parent and teen dashboards communicate with Pocket's authenticated server. OpenAI interprets spending intent and prepares suggestions; server-side rules enforce budgets and permissions. PostgreSQL and Prisma persist family data and purchase reservations, while PayPal Sandbox handles authorized payments.
+
+![Pocket system architecture: parent and teen dashboards connect to the Pocket server, which integrates with OpenAI, PayPal Sandbox, and PostgreSQL through Prisma.](docs/images/pocket-system-architecture.png)
+
+See the [architecture guide](docs/architecture.md) for implementation details.
+
+## Purchase flow
+
+Pocket classifies a selected product and checks spending rules before sending a payment. Eligible purchases proceed through a budget recheck, reservation, PayPal order creation and capture, and independent capture verification. Purchases requiring approval go to the parent; hard limits block payment. Uncertain payment outcomes remain reserved for reconciliation.
+
+![Pocket purchase flow: product selection, AI classification, spending checks, parent review when required, PayPal Sandbox payment, capture verification, and receipt updates.](docs/images/pocket-purchase-flow.png)
+
+See the [checkout walkthrough](docs/checkout-demo.md) for a step-by-step sandbox demo. All payments use sandbox funds; no real money or goods are exchanged.
+
 ## Quick start
 
 Use Node.js 22.12+ (Node 24 recommended), npm, and PostgreSQL 16 or newer.
